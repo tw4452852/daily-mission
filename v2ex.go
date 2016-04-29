@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,46 +9,31 @@ import (
 	"strings"
 )
 
-var loginUrl = "https://v2ex.com/signin"
-var missionUrl = "https://v2ex.com/mission/daily"
+type v2ex struct{}
 
-var username = "123"
-var password = "123"
+func (v v2ex) checkin() error {
+	const (
+		loginUrl   = "https://v2ex.com/signin"
+		missionUrl = "https://v2ex.com/mission/daily"
+		username   = "123"
+		password   = "123"
+	)
 
-type myCookieJar struct {
-	cookies []*http.Cookie
-}
-
-func (c *myCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {
-	if c.cookies == nil {
-		c.cookies = make([]*http.Cookie, 0)
-	}
-
-	for _, it := range cookies {
-		c.cookies = append(c.cookies, it)
-	}
-}
-
-func (c *myCookieJar) Cookies(u *url.URL) []*http.Cookie {
-	return c.cookies
-}
-
-func main() {
 	cookieJar := &myCookieJar{}
 	client := http.Client{Jar: cookieJar}
 	// login
 	loginreq, err := http.NewRequest("GET", loginUrl, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	loginresp, err := client.Do(loginreq)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer loginresp.Body.Close()
 	loginHtml, err := ioutil.ReadAll(loginresp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	re := regexp.MustCompile(`<input type="hidden" value="(\d+)" name="once" />`)
 	once := re.FindStringSubmatch(string(loginHtml))
@@ -68,7 +52,7 @@ func main() {
 		"once":    {once[1]}}
 	req, err := http.NewRequest("POST", loginUrl, strings.NewReader(params.Encode()))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	req.Header.Add("Host", "v2ex.com")
 	req.Header.Add("Origin", "http://v2ex.com")
@@ -79,32 +63,32 @@ func main() {
 	}
 	loginResult, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer loginResult.Body.Close()
 	//loginResultS, err := ioutil.ReadAll(loginResult.Body)
 	//if err != nil {
-	//log.Fatal(err)
+	//return err
 	//}
 	//log.Printf("login result:\n%s\n", string(loginResultS))
 
 	// try finish mission
 	missionReq, err := http.NewRequest("GET", missionUrl, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	missionResp, err := client.Do(missionReq)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer missionResp.Body.Close()
 	missionHtml, err := ioutil.ReadAll(missionResp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	missionHtmlStr := string(missionHtml)
 	if strings.Index(missionHtmlStr, "每日登录奖励已领取") > 0 {
-		fmt.Println("每日登录奖励已领取")
+		log.Println("v2ex: already checkin")
 	} else {
 		re = regexp.MustCompile(`location.href = '(.*)'`)
 		matched := re.FindStringSubmatch(missionHtmlStr)
@@ -112,13 +96,18 @@ func main() {
 		//log.Printf("%v\n", req)
 		result, err := client.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		defer result.Body.Close()
-		//resultS, err := ioutil.ReadAll(result.Body)
-		//if err != nil {
-		//log.Fatalln(err)
-		//}
-		//log.Printf("result:\n%s\n", string(resultS))
+		resultS, err := ioutil.ReadAll(result.Body)
+		if err != nil {
+			return err
+		}
+		log.Printf("result:\n%s\n", string(resultS))
 	}
+	return nil
+}
+
+func init() {
+	registerMission(v2ex{})
 }
