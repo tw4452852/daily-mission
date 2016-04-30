@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -103,7 +104,11 @@ func (v v2ex) checkin() error {
 		if err != nil {
 			return err
 		}
-		log.Printf("result:\n%s\n", string(resultS))
+		if strings.Index(string(resultS), "每日登录奖励已领取") > 0 {
+			log.Println("v2ex: checkin success\n")
+		} else {
+			return errors.New("v2ex: checkin failed")
+		}
 	}
 	return nil
 }
