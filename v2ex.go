@@ -14,10 +14,10 @@ type v2ex struct{}
 
 func (v v2ex) checkin() error {
 	const (
-		loginUrl   = "https://v2ex.com/signin"
-		missionUrl = "https://v2ex.com/mission/daily"
 		username   = "123"
 		password   = "123"
+		loginUrl   = "https://www.v2ex.com/signin"
+		missionUrl = "https://www.v2ex.com/mission/daily"
 	)
 
 	cookieJar := &myCookieJar{}
@@ -38,16 +38,16 @@ func (v v2ex) checkin() error {
 	}
 	re := regexp.MustCompile(`<input type="hidden" value="(\d+)" name="once" />`)
 	once := re.FindStringSubmatch(string(loginHtml))
-	//log.Println(once)
+	// log.Println(once)
 	re = regexp.MustCompile(`<input type="text" class="sl" name="(\w+)"`)
 	user := re.FindStringSubmatch(string(loginHtml))
-	//log.Println(user)
+	// log.Println(user)
 	re = regexp.MustCompile(`<input type="password" class="sl" name="(\w+)"`)
 	passwd := re.FindStringSubmatch(string(loginHtml))
-	//log.Println(passwd)
+	// log.Println(passwd)
 
 	params := url.Values{
-		"next":    {"/", "/"},
+		"next":    {"/"},
 		user[1]:   {username},
 		passwd[1]: {password},
 		"once":    {once[1]}}
@@ -67,11 +67,11 @@ func (v v2ex) checkin() error {
 		return err
 	}
 	defer loginResult.Body.Close()
-	//loginResultS, err := ioutil.ReadAll(loginResult.Body)
-	//if err != nil {
-	//return err
-	//}
-	//log.Printf("login result:\n%s\n", string(loginResultS))
+	// loginResultS, err := ioutil.ReadAll(loginResult.Body)
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Printf("login result:\n%s\n", string(loginResultS))
 
 	// try finish mission
 	missionReq, err := http.NewRequest("GET", missionUrl, nil)
